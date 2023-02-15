@@ -1,16 +1,15 @@
 using System.Collections;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class CuttingCounter : BaseCounter
 {
-    private const int CUTTING_PROGRESS_THRESHOLD = 5;
-
     [SerializeField] private CuttingRecipeSO[] cuttingRecipeSOArray;
 
     private static Dictionary<KitchenObject, int> kitchenObjectCuttingProgressDictionary;
     private int cuttingProgress;
-    private bool isSliced;
+
     private bool hasCuttingRecipeSO;
     private bool isKitchenObjectChanged;
 
@@ -21,12 +20,13 @@ public class CuttingCounter : BaseCounter
     public override void Interact(Player player) {
         if (player.HasKitchenObject()) {
             ReceiveKitchenObjectFromPlayer(player);
-            isKitchenObjectChanged = true;
             cuttingProgress = 0;
+            isKitchenObjectChanged = true;
         } else {
             GiveKitchenObjectToPlayer(player);
         }
     }
+
     public override void InteractAlternate(Player player) {
         if (!HasKitchenObject()) {
             Debug.Log("Nothing to interact with.");
@@ -66,8 +66,9 @@ public class CuttingCounter : BaseCounter
     private void SliceKitchenObject() {
         cuttingProgress++;
         kitchenObjectCuttingProgressDictionary[GetKitchenObject()] = cuttingProgress;
-        if (cuttingProgress < CUTTING_PROGRESS_THRESHOLD) {
-            Debug.Log(cuttingProgress + "/" + CUTTING_PROGRESS_THRESHOLD);
+        
+        if (cuttingProgress < GetProgressThreshold(GetKitchenObject().GetKitchenObjectSO())) {
+            Debug.Log(cuttingProgress + "/" + GetProgressThreshold(GetKitchenObject().GetKitchenObjectSO()));
             return;
         }
 
@@ -92,13 +93,20 @@ public class CuttingCounter : BaseCounter
     }
 
     private KitchenObjectSO GetOutputForInput(KitchenObjectSO inputKitchenObjectSO) {
+        return GetCuttingRecipeSOWithInput(inputKitchenObjectSO)?.output;
+    }
+
+    private int GetProgressThreshold(KitchenObjectSO inputKitchenObjectSO) {
+        return GetCuttingRecipeSOWithInput(inputKitchenObjectSO).cuttingProgressThreshold;
+    }
+
+    private CuttingRecipeSO GetCuttingRecipeSOWithInput(KitchenObjectSO inputKitchenObjectSO) {
         foreach (CuttingRecipeSO cuttingRecipeSO in cuttingRecipeSOArray) {
             if (cuttingRecipeSO.input == inputKitchenObjectSO) {
-                return cuttingRecipeSO.output;
+                return cuttingRecipeSO;
             }
         }
         return null;
     }
-
 
 }

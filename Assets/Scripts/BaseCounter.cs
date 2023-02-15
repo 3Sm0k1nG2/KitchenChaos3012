@@ -34,7 +34,7 @@ public abstract class BaseCounter : MonoBehaviour, IKitchenObjectParent
 
     protected void GiveKitchenObjectToPlayer(Player player) {
         if (!HasKitchenObject()) {
-            Debug.Log(name + " already has a KitchenObject");
+            Debug.Log(name + " has no KitchenObject");
             return;
         }
 
