@@ -1,2 +1,0 @@
-04:29:13 - 04:34:40 | Interact Alternate
-Decided to use single Interact (on E), instead of second alternate (on E - pick_up & on F - slice)
