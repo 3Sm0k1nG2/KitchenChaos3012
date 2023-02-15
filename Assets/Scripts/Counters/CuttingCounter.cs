@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using Unity.VisualScripting;
@@ -5,10 +6,30 @@ using UnityEngine;
 
 public class CuttingCounter : BaseCounter
 {
+    public event EventHandler<OnProgressChangedEventArgs> OnProgressChanged;
+    public class OnProgressChangedEventArgs : EventArgs {
+        public float progressNormalized;
+    }
+
+    public event EventHandler OnCut;
+
     [SerializeField] private CuttingRecipeSO[] cuttingRecipeSOArray;
 
     private static Dictionary<KitchenObject, int> kitchenObjectCuttingProgressDictionary;
-    private int cuttingProgress;
+    private int _cuttingProgress;
+
+    private int cuttingProgress {
+        get {
+            return _cuttingProgress;
+        }
+        set {
+            _cuttingProgress = value;
+
+            OnProgressChanged?.Invoke(this, new OnProgressChangedEventArgs {
+                progressNormalized = (float)cuttingProgress / GetProgressThreshold(GetKitchenObject()?.GetKitchenObjectSO())
+            });
+        }
+    }
 
     private bool hasCuttingRecipeSO;
     private bool isKitchenObjectChanged;
@@ -18,12 +39,18 @@ public class CuttingCounter : BaseCounter
     }
 
     public override void Interact(Player player) {
-        if (player.HasKitchenObject()) {
-            ReceiveKitchenObjectFromPlayer(player);
-            cuttingProgress = 0;
-            isKitchenObjectChanged = true;
+        if (HasKitchenObject()) {
+            if (!player.HasKitchenObject()) {
+                GiveKitchenObjectToPlayer(player);
+                this.cuttingProgress = 0;
+            }
         } else {
-            GiveKitchenObjectToPlayer(player);
+            if(player.HasKitchenObject()) {
+                ReceiveKitchenObjectFromPlayer(player);
+                kitchenObjectCuttingProgressDictionary.TryGetValue(GetKitchenObject(), out int cuttingProgress);
+                this.cuttingProgress = cuttingProgress;
+                isKitchenObjectChanged = true;
+            }
         }
     }
 
@@ -66,6 +93,8 @@ public class CuttingCounter : BaseCounter
     private void SliceKitchenObject() {
         cuttingProgress++;
         kitchenObjectCuttingProgressDictionary[GetKitchenObject()] = cuttingProgress;
+
+        OnCut?.Invoke(this, EventArgs.Empty);
         
         if (cuttingProgress < GetProgressThreshold(GetKitchenObject().GetKitchenObjectSO())) {
             Debug.Log(cuttingProgress + "/" + GetProgressThreshold(GetKitchenObject().GetKitchenObjectSO()));
@@ -97,6 +126,10 @@ public class CuttingCounter : BaseCounter
     }
 
     private int GetProgressThreshold(KitchenObjectSO inputKitchenObjectSO) {
+        if (GetCuttingRecipeSOWithInput(inputKitchenObjectSO) is null) {
+            return 1;
+        }
+
         return GetCuttingRecipeSOWithInput(inputKitchenObjectSO).cuttingProgressThreshold;
     }
 

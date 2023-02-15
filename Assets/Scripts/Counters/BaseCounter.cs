@@ -9,10 +9,10 @@ public abstract class BaseCounter : MonoBehaviour, IKitchenObjectParent
     private KitchenObject kitchenObject;
 
     public virtual void Interact(Player player) {
-        Debug.LogError(name + " has no method Interact().");
+        Debug.Log(name + " has no method Interact().");
     }
     public virtual void InteractAlternate(Player player) {
-        Debug.LogError(name + " has no method InteractAlternate().");
+        Debug.Log(name + " has no method InteractAlternate().");
     }
 
     public Transform GetKitchenObjectFollowTransform() {
