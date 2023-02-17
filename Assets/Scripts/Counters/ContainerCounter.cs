@@ -18,18 +18,20 @@ public class ContainerCounter : BaseCounter
                 } else {
                     ReceiveKitchenObjectFromPlayer(player);
                 }
+            } else {
+                KitchenObject.SpawnObject(kitchenObjectSO, player);
+                OnPlayerGrabbedObject?.Invoke(this, EventArgs.Empty);
+            }
+        } else {
+            if (player.HasKitchenObject()) {
+                Debug.Log(name + " already has a KitchenObject.");
                 return;
             }
-            KitchenObject.SpawnObject(kitchenObjectSO, player);
-            OnPlayerGrabbedObject?.Invoke(this, EventArgs.Empty);
-            return;
-        }
 
-        if (player.HasKitchenObject()) {
-            Debug.Log(player.name + " already has a KitchenObject.");
-            return;
+            GiveKitchenObjectToPlayer(player);
         }
-
-        GiveKitchenObjectToPlayer(player);
+    }
+    public override void InteractAlternate(Player player) {
+        Debug.Log(name + " has no method InteractAlternate().");
     }
 }

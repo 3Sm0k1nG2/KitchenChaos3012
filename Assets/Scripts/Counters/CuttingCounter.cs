@@ -4,12 +4,9 @@ using System.Collections.Generic;
 using Unity.VisualScripting;
 using UnityEngine;
 
-public class CuttingCounter : BaseCounter
+public class CuttingCounter : ProgressBarUIParentCounter
 {
-    public event EventHandler<OnProgressChangedEventArgs> OnProgressChanged;
-    public class OnProgressChangedEventArgs : EventArgs {
-        public float progressNormalized;
-    }
+    public override event EventHandler<IProgressBarUIParent.OnProgressChangedEventArgs> OnProgressChanged;
 
     public event EventHandler OnCut;
 
@@ -17,16 +14,15 @@ public class CuttingCounter : BaseCounter
 
     private static Dictionary<KitchenObject, int> kitchenObjectCuttingProgressDictionary;
     private int _cuttingProgress;
-
-    private int cuttingProgress {
+    private int CuttingProgress {
         get {
             return _cuttingProgress;
         }
         set {
             _cuttingProgress = value;
 
-            OnProgressChanged?.Invoke(this, new OnProgressChangedEventArgs {
-                progressNormalized = (float)cuttingProgress / GetProgressThreshold(GetKitchenObject()?.GetKitchenObjectSO())
+            OnProgressChanged?.Invoke(this, new IProgressBarUIParent.OnProgressChangedEventArgs {
+                progressNormalized = (float)CuttingProgress / GetCuttingProgressThreshold(GetKitchenObject()?.GetKitchenObjectSO())
             });
         }
     }
@@ -38,19 +34,27 @@ public class CuttingCounter : BaseCounter
         kitchenObjectCuttingProgressDictionary = new Dictionary<KitchenObject, int>();
     }
 
+    private void KitchenObject_OnDestroySelf(object sender, KitchenObject.OnDestroySelfEventArgs e) {
+        kitchenObjectCuttingProgressDictionary.Remove(e.thisAsKitchenObject);
+    }
+
     public override void Interact(Player player) {
-        if (HasKitchenObject()) {
+        if (!HasKitchenObject()) {
             if (!player.HasKitchenObject()) {
-                GiveKitchenObjectToPlayer(player);
-                this.cuttingProgress = 0;
+                Debug.Log(name + " has nothing to interact with.");
+                return;
             }
+            ReceiveKitchenObjectFromPlayer(player);
+            kitchenObjectCuttingProgressDictionary.TryGetValue(GetKitchenObject(), out int CuttingProgress);
+            this.CuttingProgress = CuttingProgress;
+            isKitchenObjectChanged = true;
         } else {
-            if(player.HasKitchenObject()) {
-                ReceiveKitchenObjectFromPlayer(player);
-                kitchenObjectCuttingProgressDictionary.TryGetValue(GetKitchenObject(), out int cuttingProgress);
-                this.cuttingProgress = cuttingProgress;
-                isKitchenObjectChanged = true;
+            if (player.HasKitchenObject()) {
+                Debug.Log(name + " already has a KitchenObject.");
+                return;
             }
+            GiveKitchenObjectToPlayer(player);
+            this.CuttingProgress = 0;
         }
     }
 
@@ -62,14 +66,15 @@ public class CuttingCounter : BaseCounter
 
         if (isKitchenObjectChanged) {
             if (kitchenObjectCuttingProgressDictionary.ContainsKey(GetKitchenObject())) {
-                    if (kitchenObjectCuttingProgressDictionary.TryGetValue(GetKitchenObject(), out int cuttingProgress)) {
-                        this.cuttingProgress = cuttingProgress;
+                    if (kitchenObjectCuttingProgressDictionary.TryGetValue(GetKitchenObject(), out int CuttingProgress)) {
+                        this.CuttingProgress = CuttingProgress;
                         hasCuttingRecipeSO = true;
                     }
             } else {
                 ValidateCurrentKitchenObjectHavingCuttingRecipeSO();
                 if (hasCuttingRecipeSO) {
-                    kitchenObjectCuttingProgressDictionary.Add(GetKitchenObject(), cuttingProgress);
+                    kitchenObjectCuttingProgressDictionary.Add(GetKitchenObject(), CuttingProgress);
+                    GetKitchenObject().OnDestroySelf += KitchenObject_OnDestroySelf;
                 }
             }
 
@@ -91,13 +96,13 @@ public class CuttingCounter : BaseCounter
     }
 
     private void SliceKitchenObject() {
-        cuttingProgress++;
-        kitchenObjectCuttingProgressDictionary[GetKitchenObject()] = cuttingProgress;
+        CuttingProgress++;
+        kitchenObjectCuttingProgressDictionary[GetKitchenObject()] = CuttingProgress;
 
         OnCut?.Invoke(this, EventArgs.Empty);
         
-        if (cuttingProgress < GetProgressThreshold(GetKitchenObject().GetKitchenObjectSO())) {
-            Debug.Log(cuttingProgress + "/" + GetProgressThreshold(GetKitchenObject().GetKitchenObjectSO()));
+        if (CuttingProgress < GetCuttingProgressThreshold(GetKitchenObject().GetKitchenObjectSO())) {
+            Debug.Log(CuttingProgress + "/" + GetCuttingProgressThreshold(GetKitchenObject().GetKitchenObjectSO()));
             return;
         }
 
@@ -106,7 +111,7 @@ public class CuttingCounter : BaseCounter
 
     private void CompleteSlicing() {
         kitchenObjectCuttingProgressDictionary.Remove(GetKitchenObject());
-        cuttingProgress = 0;
+        CuttingProgress = 0;
         isKitchenObjectChanged = true;
 
         KitchenObjectSO outputKitchenObjectSO = GetOutputForInput(GetKitchenObject().GetKitchenObjectSO());
@@ -125,12 +130,13 @@ public class CuttingCounter : BaseCounter
         return GetCuttingRecipeSOWithInput(inputKitchenObjectSO)?.output;
     }
 
-    private int GetProgressThreshold(KitchenObjectSO inputKitchenObjectSO) {
-        if (GetCuttingRecipeSOWithInput(inputKitchenObjectSO) is null) {
+    private int GetCuttingProgressThreshold(KitchenObjectSO inputKitchenObjectSO) {
+        CuttingRecipeSO cuttingRecipeSO = GetCuttingRecipeSOWithInput(inputKitchenObjectSO);
+        if (cuttingRecipeSO is null) {
             return 1;
         }
 
-        return GetCuttingRecipeSOWithInput(inputKitchenObjectSO).cuttingProgressThreshold;
+        return cuttingRecipeSO.cuttingProgressThreshold;
     }
 
     private CuttingRecipeSO GetCuttingRecipeSOWithInput(KitchenObjectSO inputKitchenObjectSO) {

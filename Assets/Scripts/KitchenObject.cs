@@ -1,14 +1,24 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class KitchenObject : MonoBehaviour {
+public class KitchenObject : MonoBehaviour 
+{
+    public event EventHandler<OnDestroySelfEventArgs> OnDestroySelf;
+    public class OnDestroySelfEventArgs : EventArgs {
+        public KitchenObject thisAsKitchenObject;
+    };
 
     [SerializeField] private KitchenObjectSO kitchenObjectSO;
 
     private IKitchenObjectParent kitchenObjectParent;
 
     public KitchenObjectSO GetKitchenObjectSO() { return kitchenObjectSO; }
+
+    private void Awake() {
+        OnDestroySelf += KitchenObject_OnDestroySelfAfterAllDelegates;
+    }
 
     public void SetKitchenObjectParent(IKitchenObjectParent kitchenObjectParent) {
         if(this.kitchenObjectParent != null) {
@@ -30,12 +40,6 @@ public class KitchenObject : MonoBehaviour {
         return kitchenObjectParent;
     }
 
-    public void DestroySelf() {
-        kitchenObjectParent.ClearKitchenObject();
-
-        Destroy(gameObject);
-    }
-
     public static KitchenObject SpawnObject(KitchenObjectSO kitchenObjectSO, IKitchenObjectParent kitchenObjectParent) {
         Transform kitchenObjectTransform = Instantiate(kitchenObjectSO.prefab);
 
@@ -44,5 +48,14 @@ public class KitchenObject : MonoBehaviour {
         kitchenObject.GetComponentInParent<Transform>().localPosition = Vector3.zero;
 
         return kitchenObject;
+    }
+    private void KitchenObject_OnDestroySelfAfterAllDelegates(object sender, EventArgs e) {
+        kitchenObjectParent.ClearKitchenObject();
+
+        Destroy(gameObject);
+    }
+
+    public void DestroySelf() {
+        OnDestroySelf?.Invoke(this, new OnDestroySelfEventArgs { thisAsKitchenObject = this });
     }
 }

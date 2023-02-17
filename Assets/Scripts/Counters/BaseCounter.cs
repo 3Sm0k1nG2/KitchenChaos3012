@@ -8,12 +8,8 @@ public abstract class BaseCounter : MonoBehaviour, IKitchenObjectParent
 
     private KitchenObject kitchenObject;
 
-    public virtual void Interact(Player player) {
-        Debug.Log(name + " has no method Interact().");
-    }
-    public virtual void InteractAlternate(Player player) {
-        Debug.Log(name + " has no method InteractAlternate().");
-    }
+    public abstract void Interact(Player player);
+    public abstract void InteractAlternate(Player player);
 
     public Transform GetKitchenObjectFollowTransform() {
         return counterTopPoint;

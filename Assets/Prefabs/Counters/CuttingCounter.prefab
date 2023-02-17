@@ -117,7 +117,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b321a069cb0b12e43b240e28805cfed9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  cuttingCounter: {fileID: 1040987078865043781}
+  progressBarUIParent: {fileID: 1040987078865043781}
   barImage: {fileID: 1883233967192442990}
 --- !u!114 &3398529432235074490
 MonoBehaviour:
