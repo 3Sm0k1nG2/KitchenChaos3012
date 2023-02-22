@@ -135,7 +135,7 @@ public class CuttingCounter : BaseCounter, IHasProgress
             return 1;
         }
 
-        return cuttingRecipeSO.cuttingProgressThreshold;
+        return cuttingRecipeSO.cuttingProgressMax;
     }
 
     private CuttingRecipeSO GetCuttingRecipeSOWithInput(KitchenObjectSO inputKitchenObjectSO) {
