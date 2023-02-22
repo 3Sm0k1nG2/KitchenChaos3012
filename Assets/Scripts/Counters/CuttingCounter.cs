@@ -4,10 +4,9 @@ using System.Collections.Generic;
 using Unity.VisualScripting;
 using UnityEngine;
 
-public class CuttingCounter : ProgressBarUIParentCounter
+public class CuttingCounter : BaseCounter, IHasProgress
 {
-    public override event EventHandler<IProgressBarUIParent.OnProgressChangedEventArgs> OnProgressChanged;
-
+    public event EventHandler<IHasProgress.OnProgressChangedEventArgs> OnProgressChanged;
     public event EventHandler OnCut;
 
     [SerializeField] private CuttingRecipeSO[] cuttingRecipeSOArray;
@@ -21,7 +20,7 @@ public class CuttingCounter : ProgressBarUIParentCounter
         set {
             _cuttingProgress = value;
 
-            OnProgressChanged?.Invoke(this, new IProgressBarUIParent.OnProgressChangedEventArgs {
+            OnProgressChanged?.Invoke(this, new IHasProgress.OnProgressChangedEventArgs {
                 progressNormalized = (float)CuttingProgress / GetCuttingProgressThreshold(GetKitchenObject()?.GetKitchenObjectSO())
             });
         }

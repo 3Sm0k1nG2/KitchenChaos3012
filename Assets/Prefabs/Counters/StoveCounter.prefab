@@ -285,7 +285,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b321a069cb0b12e43b240e28805cfed9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  progressBarUIParent: {fileID: 6581764861116550527}
+  hasProgressGameObject: {fileID: 8741296488072007015}
   barImage: {fileID: 2684433881003863427}
 --- !u!114 &1623673893121518494
 MonoBehaviour:

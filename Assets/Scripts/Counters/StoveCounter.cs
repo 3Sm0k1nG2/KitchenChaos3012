@@ -5,9 +5,9 @@ using System.Resources;
 using Unity.VisualScripting;
 using UnityEngine;
 
-public class StoveCounter : ProgressBarUIParentCounter
+public class StoveCounter : BaseCounter, IHasProgress
 {
-    public override event EventHandler<IProgressBarUIParent.OnProgressChangedEventArgs> OnProgressChanged;
+    public event EventHandler<IHasProgress.OnProgressChangedEventArgs> OnProgressChanged;
 
     public enum States {
         Off, 
@@ -48,7 +48,7 @@ public class StoveCounter : ProgressBarUIParentCounter
         set {
             _cookingTimer = value;
 
-            OnProgressChanged?.Invoke(this, new IProgressBarUIParent.OnProgressChangedEventArgs {
+            OnProgressChanged?.Invoke(this, new IHasProgress.OnProgressChangedEventArgs {
                 progressNormalized = CookingTimer / GetCookingTimerMax(GetKitchenObject()?.GetKitchenObjectSO())
             });
         }
