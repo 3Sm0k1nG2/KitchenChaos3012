@@ -435,11 +435,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   counterTopPoint: {fileID: 8151822091599182544}
+  State: 0
   stoveRecipeSOArray:
   - {fileID: 11400000, guid: 09d7636912b4dcf4889ba4af1d41c37a, type: 2}
   - {fileID: 11400000, guid: 890e2edac8b96ab4c84c0603fdb7f183, type: 2}
-  sizzlingParticles: {fileID: 8949116197681094796}
-  stoveOnVisual: {fileID: 3782689849769932549}
 --- !u!1001 &3766023284186463842
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -508,6 +507,11 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 5220305274835918574, guid: 93af8b85a17635f40a5b76ed82a86c18,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -536,6 +540,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   stoveCounter: {fileID: 6581764861116550527}
+  stoveOnVisual: {fileID: 3782689849769932549}
+  sizzlingParticles: {fileID: 8949116197681094796}
 --- !u!4 &860866196216863433 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 4589716710238282923, guid: 93af8b85a17635f40a5b76ed82a86c18,

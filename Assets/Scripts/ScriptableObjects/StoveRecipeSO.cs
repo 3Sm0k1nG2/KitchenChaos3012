@@ -7,5 +7,5 @@ public class StoveRecipeSO : ScriptableObject
 {
     public KitchenObjectSO input;
     public KitchenObjectSO output;
-    public int cookingProgressThreshold;
+    public float cookingTimerMax;
 }

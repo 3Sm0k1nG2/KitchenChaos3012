@@ -1,154 +1,152 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Resources;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class StoveCounter : ProgressBarUIParentCounter
 {
     public override event EventHandler<IProgressBarUIParent.OnProgressChangedEventArgs> OnProgressChanged;
 
-    public event EventHandler<OnTurnOnOffEventArgs> OnTurnOnOff;
-    public class OnTurnOnOffEventArgs : EventArgs {
-        public bool isOn;
+    public enum States {
+        Off, 
+        On,
+        Uncookable,
+        Cooking
+    }
+
+    public event EventHandler<OnStateChangedEventArgs> OnStateChanged;
+    public class OnStateChangedEventArgs : EventArgs {
+        public States state;
     };
 
-    public event EventHandler OnStartCooking;
-    public event EventHandler OnStopCooking;
+    [SerializeField] private States State;
+    private States prevState;
+    //private States State {
+    //    get {
+    //        return _state;
+    //    }
+    //    set {
+    //        _state = value;
+    //        OnStateChanged?.Invoke(this, new OnStateChangedEventArgs() {
+    //            state = _state
+    //        });
+    //    }
+    //}
 
     [SerializeField] private StoveRecipeSO[] stoveRecipeSOArray;
 
-    public GameObject sizzlingParticles;
-    public GameObject stoveOnVisual;
+    private bool hasKitchenObjectChanged = true;
 
-    private bool _isOn;
-    private bool IsOn {
+    private static Dictionary<KitchenObject, float> kitchenObjectCookingTimerDictionary;
+    private float _cookingTimer;
+    private float CookingTimer {
         get {
-            return _isOn;
+            return _cookingTimer;
         }
         set {
-            _isOn = value;
-            OnTurnOnOff?.Invoke(this, new OnTurnOnOffEventArgs {
-                isOn = _isOn
-            });
-            if(!_isOn && IsCooking) {
-                OnStopCooking?.Invoke(this, EventArgs.Empty);
-                IsCooking = false;
-            }
-        }
-    }
-
-    private bool _isCooking;
-    private bool IsCooking {
-        get {
-            return _isCooking;
-        }
-        set {
-            _isCooking = value;
-            if (_isCooking) {
-                OnStartCooking?.Invoke(this, EventArgs.Empty);
-            } else {
-                OnStopCooking?.Invoke(this, EventArgs.Empty);
-            }
-        }
-    }
-
-    private bool hasKitchenObjectChanged;
-
-    private static Dictionary<KitchenObject, int> kitchenObjectCookingProgressDictionary;
-    private int _cookingProgress;
-    private int CookingProgress {
-        get {
-            return _cookingProgress;
-        }
-        set {
-            _cookingProgress = value;
+            _cookingTimer = value;
 
             OnProgressChanged?.Invoke(this, new IProgressBarUIParent.OnProgressChangedEventArgs {
-                progressNormalized = (float)CookingProgress / GetCookingProgressThreshold(GetKitchenObject()?.GetKitchenObjectSO())
+                progressNormalized = CookingTimer / GetCookingTimerMax(GetKitchenObject()?.GetKitchenObjectSO())
             });
         }
     }
 
     private void Awake() {
-        kitchenObjectCookingProgressDictionary = new Dictionary<KitchenObject, int>();
+        kitchenObjectCookingTimerDictionary = new Dictionary<KitchenObject, float>();
     }
 
     private void KitchenObject_OnDestroySelf(object sender, KitchenObject.OnDestroySelfEventArgs e) {
-        kitchenObjectCookingProgressDictionary.Remove(e.thisAsKitchenObject);
+        kitchenObjectCookingTimerDictionary.Remove(e.thisAsKitchenObject);
     }
 
     private void Update() {
-        if (!IsOn) {
-            return;
+
+        if (State != prevState) {
+            InvokeOnStateChangedEvent(State);
+            prevState = State;
         }
 
-        if (!HasKitchenObject()) {
-            return;
-        }
-
-        if (!IsCooking) {
-            if (kitchenObjectCookingProgressDictionary.TryGetValue(GetKitchenObject(), out int cookingProgress)) {
-                CookingProgress = cookingProgress;
-                IsCooking = true;
+        if (hasKitchenObjectChanged) {
+            if (HasKitchenObject()
+                && kitchenObjectCookingTimerDictionary.TryGetValue(GetKitchenObject(), out float cookingTimer)
+            ) {
+                CookingTimer = cookingTimer;
             } else {
-                if (GetCookingRecipeSOWithInput(GetKitchenObject().GetKitchenObjectSO()) is null) {
-                    Debug.Log(GetKitchenObject().name + " has no CookingRecipeSO.");
+                CookingTimer = 0f;
+            }
+        } 
+
+        switch (State) {
+            case States.Off:
+                break;
+            case States.On:
+                hasKitchenObjectChanged = false;
+
+                if (!HasKitchenObject()) {
                     return;
                 }
 
-                kitchenObjectCookingProgressDictionary.Add(GetKitchenObject(), CookingProgress);
-                IsCooking = true;
-                GetKitchenObject().OnDestroySelf += KitchenObject_OnDestroySelf;
-            }
-        } else {
-            CookingProgress++;
-            kitchenObjectCookingProgressDictionary[GetKitchenObject()] = CookingProgress;
-            if (CookingProgress < GetCookingProgressThreshold(GetKitchenObject().GetKitchenObjectSO())) {
-                return;
-            }
+                if (GetCookingRecipeSOWithInput(GetKitchenObject().GetKitchenObjectSO()) is null) {
+                    Debug.Log(GetKitchenObject().name + " has no CookingRecipeSO.");
+                    State = States.Uncookable;
+                    return;
+                }
 
-            KitchenObjectSO kitchenObjectSO = GetOutputForInput(GetKitchenObject().GetKitchenObjectSO());
+                if (!kitchenObjectCookingTimerDictionary.ContainsKey(GetKitchenObject())){
+                    kitchenObjectCookingTimerDictionary.Add(GetKitchenObject(), CookingTimer);
+                    GetKitchenObject().OnDestroySelf += KitchenObject_OnDestroySelf;
+                }
 
-            if (kitchenObjectSO == null) {
-                return;
-            }
+                State = States.Cooking;
 
-            CompleteCooking(kitchenObjectSO);
+                break;
+            case States.Uncookable:
+                if (!HasKitchenObject()) {
+                    return;
+                }
+
+                if (hasKitchenObjectChanged) {
+                    State = States.On;
+                }
+
+                break;
+            case States.Cooking:
+                if (!HasKitchenObject()) {
+                    return;
+                }
+
+                if (!kitchenObjectCookingTimerDictionary.ContainsKey(GetKitchenObject())) {
+                    State = States.Uncookable;
+                    return;
+                }
+
+                CookingTimer += Time.deltaTime;
+                kitchenObjectCookingTimerDictionary[GetKitchenObject()] = CookingTimer;
+                if (CookingTimer < GetCookingTimerMax(GetKitchenObject().GetKitchenObjectSO())) {
+                    return;
+                }
+
+                KitchenObjectSO kitchenObjectSO = GetOutputForInput(GetKitchenObject().GetKitchenObjectSO());
+
+                if (kitchenObjectSO == null) {
+                    return;
+                }
+
+                CompleteCooking(kitchenObjectSO);
+                State = States.On;
+
+                break;
         }
+    }
 
-        //if (HasKitchenObject()) {
-        //    if (!IsCooking) {
-        //        if(kitchenObjectCookingProgressDictionary.TryGetValue(GetKitchenObject(), out int cookingProgress)) {
-        //            CookingProgress = cookingProgress;
-        //            IsCooking = true;
-        //        } else {
-        //            if (GetCookingRecipeSOWithInput(GetKitchenObject().GetKitchenObjectSO()) is null) {
-        //                return;
-        //            }
 
-        //            kitchenObjectCookingProgressDictionary.Add(GetKitchenObject(), CookingProgress);
-        //            IsCooking = true;
-        //        }
-        //    } else {
-        //        CookingProgress++;
-        //        kitchenObjectCookingProgressDictionary[GetKitchenObject()] = CookingProgress;
-        //        if (CookingProgress < GetCookingProgressThreshold(GetKitchenObject().GetKitchenObjectSO())) {
-        //            return;
-        //        }
-
-        //        KitchenObjectSO kitchenObjectSO = GetOutputForInput(GetKitchenObject().GetKitchenObjectSO());
-
-        //        if(kitchenObjectSO == null) {
-        //            return;
-        //        }
-
-        //        CompleteCooking(kitchenObjectSO);
-        //    }
-        //} else {
-        //    if(IsCooking) {
-        //        IsCooking = false;
-        //    }
-        //}
+    private void InvokeOnStateChangedEvent(States state) {
+        OnStateChanged?.Invoke(this, new OnStateChangedEventArgs() {
+            state = state
+        });
     }
 
     public override void Interact(Player player) {
@@ -156,47 +154,48 @@ public class StoveCounter : ProgressBarUIParentCounter
             if (!player.HasKitchenObject()) {
                 Debug.Log(name + " has nothing to interact with.");
             } else {
-                player.GetKitchenObject().SetKitchenObjectParent(this);
-                hasKitchenObjectChanged = true;
+                ChangeKitchenObjectParentTo(player.GetKitchenObject(), this);
             }
         } else {
             if (player.HasKitchenObject()) {
                 Debug.Log(name + " already has a KitchenObject.");
             } else {
-                GetKitchenObject().SetKitchenObjectParent(player);
-                CookingProgress = 0;
-                if (IsCooking) {
-                    IsCooking = false;
+                ChangeKitchenObjectParentTo(GetKitchenObject(), player);
+                CookingTimer = 0;
+                if (State == States.Cooking) {
+                    State = States.On;
                 }
             }
         }
     }
 
     public override void InteractAlternate(Player player) {
-        IsOn = !IsOn;
+        State = (State == States.Off) ? States.On : States.Off;
     }
 
     private void CompleteCooking(KitchenObjectSO kitchenObjectSO) {
-        CookingProgress = 0;
-        IsCooking = false;
         GetKitchenObject().DestroySelf();
-        KitchenObject.SpawnObject(kitchenObjectSO, this);
-        hasKitchenObjectChanged = true;
+        ChangeKitchenObjectParentTo(KitchenObject.SpawnObject(kitchenObjectSO, this), this);
 
         Debug.Log("Cooked a " + GetKitchenObject().name + "!");
+    }
+
+    private void ChangeKitchenObjectParentTo(KitchenObject kitchenObject, IKitchenObjectParent kitchenObjectParent) {
+        kitchenObject.SetKitchenObjectParent(kitchenObjectParent);
+        hasKitchenObjectChanged = true;
     }
 
     private KitchenObjectSO GetOutputForInput(KitchenObjectSO inputKitchenObjectSO) {
         return GetCookingRecipeSOWithInput(inputKitchenObjectSO)?.output;
     }
 
-    private int GetCookingProgressThreshold(KitchenObjectSO inputKitchenObjectSO) {
+    private float GetCookingTimerMax(KitchenObjectSO inputKitchenObjectSO) {
         StoveRecipeSO stoveRecipeSO = GetCookingRecipeSOWithInput(inputKitchenObjectSO);
         if (stoveRecipeSO == null) {
             return 1;
         }
 
-        return stoveRecipeSO.cookingProgressThreshold;
+        return stoveRecipeSO.cookingTimerMax;
     }
 
     private StoveRecipeSO GetCookingRecipeSOWithInput(KitchenObjectSO inputKitchenObjectSO) {

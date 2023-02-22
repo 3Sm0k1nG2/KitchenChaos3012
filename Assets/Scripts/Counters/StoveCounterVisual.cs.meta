@@ -3,7 +3,11 @@ guid: 728009affbd659e48a5c1bb89bceff39
 MonoImporter:
   externalObjects: {}
   serializedVersion: 2
-  defaultReferences: []
+  defaultReferences:
+  - stoveCounter: {fileID: 6581764861116550527, guid: 6076623678b35734b949b2cb1ccbf099,
+      type: 3}
+  - stoveOnVisual: {instanceID: 0}
+  - sizzlingParticles: {instanceID: 0}
   executionOrder: 0
   icon: {instanceID: 0}
   userData: 
