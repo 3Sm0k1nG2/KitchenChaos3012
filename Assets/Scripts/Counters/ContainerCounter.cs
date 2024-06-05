@@ -24,8 +24,25 @@ public class ContainerCounter : BaseCounter
             }
         } else {
             if (player.HasKitchenObject()) {
+                if (player.GetKitchenObject().TryGetPlate(out PlateKitchenObject plateKitchenObject))
+                {
+                    if (plateKitchenObject.TryAddIngredient(GetKitchenObject().GetKitchenObjectSO()))
+                    {
+                        GetKitchenObject().DestroySelf();
+                        return;
+                    }
+                }
+
+                if (GetKitchenObject().TryGetPlate(out plateKitchenObject))
+                {
+                    if (plateKitchenObject.TryAddIngredient(player.GetKitchenObject().GetKitchenObjectSO()))
+                    {
+                        player.GetKitchenObject().DestroySelf();
+                        return;
+                    }
+                }
+
                 Debug.Log(name + " already has a KitchenObject.");
-                return;
             }
 
             GiveKitchenObjectToPlayer(player);

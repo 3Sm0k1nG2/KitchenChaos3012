@@ -16,7 +16,7 @@ public class KitchenObject : MonoBehaviour
 
     public KitchenObjectSO GetKitchenObjectSO() { return kitchenObjectSO; }
 
-    private void Awake() {
+    private void Start() {
         OnDestroySelf += KitchenObject_OnDestroySelfAfterAllDelegates;
     }
 
@@ -38,6 +38,18 @@ public class KitchenObject : MonoBehaviour
 
     public IKitchenObjectParent GetKitchenObjectParent() {
         return kitchenObjectParent;
+    }
+
+    public bool TryGetPlate(out PlateKitchenObject plateKitchenObject)
+    {
+        if (this is not PlateKitchenObject)
+        {
+            plateKitchenObject = null;
+            return false;
+        }
+
+        plateKitchenObject = this as PlateKitchenObject;
+        return true;
     }
 
     public static KitchenObject SpawnObject(KitchenObjectSO kitchenObjectSO, IKitchenObjectParent kitchenObjectParent) {

@@ -9,31 +9,22 @@ public class StoveCounter : BaseCounter, IHasProgress
 {
     public event EventHandler<IHasProgress.OnProgressChangedEventArgs> OnProgressChanged;
 
-    public enum States {
-        Off, 
+    public enum States
+    {
+        Off,
         On,
         Uncookable,
         Cooking
     }
 
     public event EventHandler<OnStateChangedEventArgs> OnStateChanged;
-    public class OnStateChangedEventArgs : EventArgs {
+    public class OnStateChangedEventArgs : EventArgs
+    {
         public States state;
     };
 
     [SerializeField] private States State;
     private States prevState;
-    //private States State {
-    //    get {
-    //        return _state;
-    //    }
-    //    set {
-    //        _state = value;
-    //        OnStateChanged?.Invoke(this, new OnStateChangedEventArgs() {
-    //            state = _state
-    //        });
-    //    }
-    //}
 
     [SerializeField] private StoveRecipeSO[] stoveRecipeSOArray;
 
@@ -41,61 +32,76 @@ public class StoveCounter : BaseCounter, IHasProgress
 
     private static Dictionary<KitchenObject, float> kitchenObjectCookingTimerDictionary;
     private float _cookingTimer;
-    private float CookingTimer {
-        get {
+    private float CookingTimer
+    {
+        get
+        {
             return _cookingTimer;
         }
-        set {
+        set
+        {
             _cookingTimer = value;
 
-            OnProgressChanged?.Invoke(this, new IHasProgress.OnProgressChangedEventArgs {
+            OnProgressChanged?.Invoke(this, new IHasProgress.OnProgressChangedEventArgs
+            {
                 progressNormalized = CookingTimer / GetCookingTimerMax(GetKitchenObject()?.GetKitchenObjectSO())
             });
         }
     }
 
-    private void Awake() {
+    private void Awake()
+    {
         kitchenObjectCookingTimerDictionary = new Dictionary<KitchenObject, float>();
     }
 
-    private void KitchenObject_OnDestroySelf(object sender, KitchenObject.OnDestroySelfEventArgs e) {
+    private void KitchenObject_OnDestroySelf(object sender, KitchenObject.OnDestroySelfEventArgs e)
+    {
         kitchenObjectCookingTimerDictionary.Remove(e.thisAsKitchenObject);
     }
 
-    private void Update() {
-
-        if (State != prevState) {
+    private void Update()
+    {
+        if (State != prevState)
+        {
             InvokeOnStateChangedEvent(State);
             prevState = State;
         }
 
-        if (hasKitchenObjectChanged) {
+        if (hasKitchenObjectChanged)
+        {
             if (HasKitchenObject()
                 && kitchenObjectCookingTimerDictionary.TryGetValue(GetKitchenObject(), out float cookingTimer)
-            ) {
+            )
+            {
                 CookingTimer = cookingTimer;
-            } else {
+            }
+            else
+            {
                 CookingTimer = 0f;
             }
-        } 
+        }
 
-        switch (State) {
+        switch (State)
+        {
             case States.Off:
                 break;
             case States.On:
                 hasKitchenObjectChanged = false;
 
-                if (!HasKitchenObject()) {
+                if (!HasKitchenObject())
+                {
                     return;
                 }
 
-                if (GetCookingRecipeSOWithInput(GetKitchenObject().GetKitchenObjectSO()) is null) {
+                if (GetCookingRecipeSOWithInput(GetKitchenObject().GetKitchenObjectSO()) is null)
+                {
                     Debug.Log(GetKitchenObject().name + " has no CookingRecipeSO.");
                     State = States.Uncookable;
                     return;
                 }
 
-                if (!kitchenObjectCookingTimerDictionary.ContainsKey(GetKitchenObject())){
+                if (!kitchenObjectCookingTimerDictionary.ContainsKey(GetKitchenObject()))
+                {
                     kitchenObjectCookingTimerDictionary.Add(GetKitchenObject(), CookingTimer);
                     GetKitchenObject().OnDestroySelf += KitchenObject_OnDestroySelf;
                 }
@@ -104,34 +110,40 @@ public class StoveCounter : BaseCounter, IHasProgress
 
                 break;
             case States.Uncookable:
-                if (!HasKitchenObject()) {
+                if (!HasKitchenObject())
+                {
                     return;
                 }
 
-                if (hasKitchenObjectChanged) {
+                if (hasKitchenObjectChanged)
+                {
                     State = States.On;
                 }
 
                 break;
             case States.Cooking:
-                if (!HasKitchenObject()) {
+                if (!HasKitchenObject())
+                {
                     return;
                 }
 
-                if (!kitchenObjectCookingTimerDictionary.ContainsKey(GetKitchenObject())) {
+                if (!kitchenObjectCookingTimerDictionary.ContainsKey(GetKitchenObject()))
+                {
                     State = States.Uncookable;
                     return;
                 }
 
                 CookingTimer += Time.deltaTime;
                 kitchenObjectCookingTimerDictionary[GetKitchenObject()] = CookingTimer;
-                if (CookingTimer < GetCookingTimerMax(GetKitchenObject().GetKitchenObjectSO())) {
+                if (CookingTimer < GetCookingTimerMax(GetKitchenObject().GetKitchenObjectSO()))
+                {
                     return;
                 }
 
                 KitchenObjectSO kitchenObjectSO = GetOutputForInput(GetKitchenObject().GetKitchenObjectSO());
 
-                if (kitchenObjectSO == null) {
+                if (kitchenObjectSO == null)
+                {
                     return;
                 }
 
@@ -143,64 +155,104 @@ public class StoveCounter : BaseCounter, IHasProgress
     }
 
 
-    private void InvokeOnStateChangedEvent(States state) {
-        OnStateChanged?.Invoke(this, new OnStateChangedEventArgs() {
+    private void InvokeOnStateChangedEvent(States state)
+    {
+        OnStateChanged?.Invoke(this, new OnStateChangedEventArgs()
+        {
             state = state
         });
     }
 
-    public override void Interact(Player player) {
-        if (!HasKitchenObject()) {
-            if (!player.HasKitchenObject()) {
+    public override void Interact(Player player)
+    {
+        if (!HasKitchenObject())
+        {
+            if (!player.HasKitchenObject())
+            {
                 Debug.Log(name + " has nothing to interact with.");
-            } else {
+            }
+            else
+            {
                 ChangeKitchenObjectParentTo(player.GetKitchenObject(), this);
             }
-        } else {
-            if (player.HasKitchenObject()) {
+        }
+        else
+        {
+            if (player.HasKitchenObject())
+            {
+                if (player.GetKitchenObject().TryGetPlate(out PlateKitchenObject plateKitchenObject))
+                {
+                    if (plateKitchenObject.TryAddIngredient(GetKitchenObject().GetKitchenObjectSO()))
+                    {
+                        GetKitchenObject().DestroySelf();
+                        return;
+                    }
+                }
+                    
+                if (GetKitchenObject().TryGetPlate(out plateKitchenObject))
+                {
+                    if (plateKitchenObject.TryAddIngredient(player.GetKitchenObject().GetKitchenObjectSO()))
+                    {
+                        player.GetKitchenObject().DestroySelf();
+                        return;
+                    }
+                }
+
                 Debug.Log(name + " already has a KitchenObject.");
-            } else {
+            }
+            else
+            {
                 ChangeKitchenObjectParentTo(GetKitchenObject(), player);
                 CookingTimer = 0;
-                if (State == States.Cooking) {
+                if (State == States.Cooking)
+                {
                     State = States.On;
                 }
             }
         }
     }
 
-    public override void InteractAlternate(Player player) {
+    public override void InteractAlternate(Player player)
+    {
         State = (State == States.Off) ? States.On : States.Off;
     }
 
-    private void CompleteCooking(KitchenObjectSO kitchenObjectSO) {
+    private void CompleteCooking(KitchenObjectSO kitchenObjectSO)
+    {
         GetKitchenObject().DestroySelf();
         ChangeKitchenObjectParentTo(KitchenObject.SpawnObject(kitchenObjectSO, this), this);
 
         Debug.Log("Cooked a " + GetKitchenObject().name + "!");
     }
 
-    private void ChangeKitchenObjectParentTo(KitchenObject kitchenObject, IKitchenObjectParent kitchenObjectParent) {
+    private void ChangeKitchenObjectParentTo(KitchenObject kitchenObject, IKitchenObjectParent kitchenObjectParent)
+    {
         kitchenObject.SetKitchenObjectParent(kitchenObjectParent);
         hasKitchenObjectChanged = true;
     }
 
-    private KitchenObjectSO GetOutputForInput(KitchenObjectSO inputKitchenObjectSO) {
+    private KitchenObjectSO GetOutputForInput(KitchenObjectSO inputKitchenObjectSO)
+    {
         return GetCookingRecipeSOWithInput(inputKitchenObjectSO)?.output;
     }
 
-    private float GetCookingTimerMax(KitchenObjectSO inputKitchenObjectSO) {
+    private float GetCookingTimerMax(KitchenObjectSO inputKitchenObjectSO)
+    {
         StoveRecipeSO stoveRecipeSO = GetCookingRecipeSOWithInput(inputKitchenObjectSO);
-        if (stoveRecipeSO == null) {
+        if (stoveRecipeSO == null)
+        {
             return 1;
         }
 
         return stoveRecipeSO.cookingTimerMax;
     }
 
-    private StoveRecipeSO GetCookingRecipeSOWithInput(KitchenObjectSO inputKitchenObjectSO) {
-        foreach (StoveRecipeSO stoveRecipeSO in stoveRecipeSOArray) {
-            if (stoveRecipeSO.input == inputKitchenObjectSO) {
+    private StoveRecipeSO GetCookingRecipeSOWithInput(KitchenObjectSO inputKitchenObjectSO)
+    {
+        foreach (StoveRecipeSO stoveRecipeSO in stoveRecipeSOArray)
+        {
+            if (stoveRecipeSO.input == inputKitchenObjectSO)
+            {
                 return stoveRecipeSO;
             }
         }

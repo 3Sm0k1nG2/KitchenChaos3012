@@ -5,9 +5,11 @@ using Unity.VisualScripting;
 using UnityEngine;
 
 public class Player : MonoBehaviour, IKitchenObjectParent {
-
     public static Player Instance { get; private set; }
 
+    [SerializeField] private KitchenChaosGameManager gameManager;
+
+    public event EventHandler OnPickedSomething;
     public event EventHandler<OnSelectedCounterChangedEventArgs> OnSelectedCounterChanged;
     public class OnSelectedCounterChangedEventArgs : EventArgs {
         public BaseCounter selectedCounter;
@@ -39,10 +41,14 @@ public class Player : MonoBehaviour, IKitchenObjectParent {
     }
 
     private void GameInput_OnInteractAction(object sender, EventArgs e) {
+        if (!gameManager.IsGamePlayingActive()) return;
+
         selectedCounter?.Interact(this);
     }
 
     private void GameInput_OnInteractAlternateAction(object sender, EventArgs e) {
+        if (!gameManager.IsGamePlayingActive()) return;
+
         selectedCounter?.InteractAlternate(this);
     }
 
@@ -61,12 +67,12 @@ public class Player : MonoBehaviour, IKitchenObjectParent {
         }
 
         float interactDistance = 2f;
-        BaseCounter clearCounter = null;
+        BaseCounter counter = null;
         if (Physics.Raycast(transform.position, lastInteractDir, out RaycastHit raycastHit, interactDistance, countersLayerMask)) {
-            raycastHit.transform.TryGetComponent(out clearCounter);
+            raycastHit.transform.TryGetComponent(out counter);
         };
 
-        SetSelectedCounter(clearCounter);
+        SetSelectedCounter(counter);
     }
 
     private void HandleMovement() {
@@ -126,6 +132,10 @@ public class Player : MonoBehaviour, IKitchenObjectParent {
 
     public void SetKitchenObject(KitchenObject kitchenObject) {
         this.kitchenObject = kitchenObject;
+
+        if (kitchenObject == null) return;
+
+        OnPickedSomething?.Invoke(this, EventArgs.Empty);
     }
 
     public KitchenObject GetKitchenObject() { return kitchenObject; }

@@ -9,6 +9,8 @@ public class ProgressBarUI : MonoBehaviour
     [SerializeField] private Image barImage;
 
     private IHasProgress hasProgress;
+    public const float PROGRESS_MAX = 1f;
+    public const float PROGRESS_MIN = 0f;
 
     private void Awake() {
         barImage.fillAmount = 0f;
